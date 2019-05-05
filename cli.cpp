@@ -57,6 +57,12 @@ int parse(const char *a, const char *b, DVB2FrameFormat *fmt ){
         express_set_sr( symbol_rate );
         return 2;
     }
+    if(strncmp(a,"-po", 3) == 0 )
+    {
+        int tx_level = atoi(b);
+        express_set_level( tx_level );
+        return 2;
+    }
 	return 1;
 }
 int process_command_line( int c, char *argv[], DVB2FrameFormat *fmt){
@@ -68,6 +74,10 @@ int process_command_line( int c, char *argv[], DVB2FrameFormat *fmt){
 	fmt->pilots = PILOTS_OFF;
 	fmt->null_deletion = NPD_NOT_ACTIVE;
 	fmt->coincedent_constellation = false;
+    express_set_freq( 1255000000 );
+    express_set_sr( 1000000 );
+    express_set_level( 20 );
+
 	// Now read in command line
 	int index = 1;
 	while( index < c){
