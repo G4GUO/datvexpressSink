@@ -8,8 +8,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <string.h>
-#include "DVBS2.h"
-#include "Express.h"
 #include "datvexpressSink.h"
 
 bool m_running;
@@ -47,9 +45,33 @@ void read_in_bytes( uint8_t *b, int len ){
     }
 }
 
-int main( int c, char *argv[]){
+void stdin_input(void){
 	uint8_t buffer[TSPLEN];
     buffer[0] = 0;
+   	while(m_running == true){
+		read_in_bytes( buffer, TSPLEN );
+   	    if(buffer[0] == 0x47){
+			m_dvbs2.s2_add_ts_frame( buffer );
+       	}else{
+       	    // Not in sync so move on 1 byte
+            read_in_bytes( buffer, 1 );
+    	}
+  	}
+}
+void udp_input(void){
+	uint8_t buffer[TSPLEN];
+    buffer[0] = 0;
+   	while(m_running == true){
+		get_udp_buffer( buffer, TSPLEN );
+   	    if(buffer[0] == 0x47){
+			m_dvbs2.s2_add_ts_frame( buffer );
+       	}else{
+       	    // Not in sync so move on 1 byte
+			get_udp_buffer( buffer, 1 );
+    	}
+  	}
+}
+int main( int c, char *argv[]){
 	struct sigaction sigIntHandler;
 
 	sigIntHandler.sa_handler = my_handler;
@@ -64,16 +86,12 @@ int main( int c, char *argv[]){
    		if(m_dvbs2.s2_set_configure( &fmt ) == 0){
     		m_dvbs2.s2_register_tx(express_write_16_bit_samples);
             express_transmit();
-            m_running = true;
-	    	while(m_running == true){
-                read_in_bytes( buffer, TSPLEN );
-           	    if(buffer[0] == 0x47){
-						m_dvbs2.s2_add_ts_frame( buffer );
-            	}else{
-            	    // Not in sync so move on 1 byte
-                    read_in_bytes( buffer, 1 );
-		    	}
-	    	}
+			m_running = true;
+			// Choose which forever loop
+            if(is_udp_active() == true)
+				udp_input();
+			else
+				stdin_input();
 		}else{
 			printcon( "Error: unable to configure S2 invalid parameter" );
 		}

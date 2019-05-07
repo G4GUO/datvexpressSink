@@ -1,7 +1,9 @@
 #include <string.h>
 #include <stdlib.h>
-#include "DVBS2.h"
+#include "datvexpressSink.h"
 #include "Express.h"
+
+static bool m_udp_active;
 
 int parse(const char *a, const char *b, DVB2FrameFormat *fmt ){
 
@@ -41,6 +43,15 @@ int parse(const char *a, const char *b, DVB2FrameFormat *fmt ){
 		if(strncmp(b,"on",2)==0)    fmt->pilots = PILOTS_ON;
 		if(strncmp(b,"off",3)==0)   fmt->pilots = PILOTS_OFF;
 		return 2;
+    }
+    //
+    // UDP 
+    //
+	if(strncmp(a,"-udp",4) == 0){
+        int udp = atoi(b);
+        udp_init( udp );
+    	m_udp_active = true;
+		return 2;
     } 
     //
 	// Express specific
@@ -65,6 +76,9 @@ int parse(const char *a, const char *b, DVB2FrameFormat *fmt ){
     }
 	return 1;
 }
+bool is_udp_active(void){
+	return m_udp_active;
+}
 int process_command_line( int c, char *argv[], DVB2FrameFormat *fmt){
 	// Set default S2 values
 	fmt->frame_type = FRAME_NORMAL;
@@ -77,6 +91,7 @@ int process_command_line( int c, char *argv[], DVB2FrameFormat *fmt){
     express_set_freq( 1255000000 );
     express_set_sr( 1000000 );
     express_set_level( 20 );
+    m_udp_active = false;
 
 	// Now read in command line
 	int index = 1;
