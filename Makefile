@@ -5,6 +5,7 @@ OBJECTS = $(patsubst %.cpp,%.o, $(wildcard *.cpp))
 
 datvexpressSink: $(OBJECTS)
 	gcc -o $@ $^ -lpthread -lusb-1.0 -lm -lstdc++
+	rm -f *.o
 
 %.o: %.c
 	gcc -c $< -o $@
