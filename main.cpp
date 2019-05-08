@@ -58,7 +58,9 @@ void stdin_input(void){
     	}
   	}
 }
+
 void udp_input(void){
+    int count = 0;
 	uint8_t buffer[TSPLEN];
     buffer[0] = 0;
    	while(m_running == true){
@@ -71,6 +73,7 @@ void udp_input(void){
     	}
   	}
 }
+
 int main( int c, char *argv[]){
 	struct sigaction sigIntHandler;
 
@@ -100,6 +103,7 @@ int main( int c, char *argv[]){
 	}
 	return 0;
 }
+
 /*
 static unsigned char m_null[TP_SIZE];
 

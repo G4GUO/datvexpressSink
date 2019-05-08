@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <semaphore.h>
+#include <stdlib.h>
 #include "Express.h"
 #include "datvexpressSink.h"
 
@@ -63,7 +64,7 @@ void cb_xfr( struct libusb_transfer *xfr )
         int   *id = (int*)xfr->user_data;
         if( *id == EXPRESS_DATA )
         {
- //           rel_buff( b );
+            free( b );
             express_free_transfer( xfr );
         }
     }
@@ -1279,12 +1280,13 @@ void express_insert_bytes(int n)
 //
 void express_write_16_bit_samples( SComplex *s, int len )
 {
+	SComplex *b = (SComplex*)malloc(sizeof(SComplex)*len);
     for( int i = 0; i < len; i++ )
     {
-       s[i].re = s[i].re | 0x0001;// Mark I channel, LSB is always '1'
-       s[i].im = s[i].im & 0xFFFE;// Mark Q channel, LSB is always '0'
+       b[i].re = s[i].re | 0x0001;// Mark I channel, LSB is always '1'
+       b[i].im = s[i].im & 0xFFFE;// Mark Q channel, LSB is always '0'
     }
-    express_send_buffer( (unsigned char *)s, len*sizeof(SComplex));
+    express_send_buffer( (unsigned char *)b, len*sizeof(SComplex));
 }
 //
 // Send each symbol is 2 x 8 bits
