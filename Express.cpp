@@ -64,7 +64,7 @@ void cb_xfr( struct libusb_transfer *xfr )
         int   *id = (int*)xfr->user_data;
         if( *id == EXPRESS_DATA )
         {
-            free( b );
+            rel_buff( b );
             express_free_transfer( xfr );
         }
     }

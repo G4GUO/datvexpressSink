@@ -11,11 +11,11 @@ void help(void){
 	printf("-ro 0.35 | 0.25 | 0.20  (filter roll off)\n");
 	printf("-co qpsk | 8psk | 16apsk | 32 apsk (constellation)\n");
 	printf("-pi on | off (pilots)\n");
-	printf("-udp port number (use UDP input)\n");
+	printf("-udp port number (UDP port)\n");
 	printf("-fr transmit frequency in HZ (transmit frequency)\n");
 	printf("-sr symbolrate  (symbol rate)\n");
 	printf("-po power level (power level)\n");
-	printf("-loop nulls  (send continuous NULL packets)\n");
+	printf("-i  std | udp | null (where to get input)\n");
 	printf("-help \n");
 }
 int parse(const char *a, const char *b, DVB2FrameFormat *fmt, SinkConfig *cfg ){
@@ -88,9 +88,11 @@ int parse(const char *a, const char *b, DVB2FrameFormat *fmt, SinkConfig *cfg ){
     }
     // What type of loop
 
-    if(strncmp(a,"-loop", 5) == 0 )
+    if(strncmp(a,"-i", 2) == 0 )
     {
-        if(strncmp(b,"nulls", 5) == 0 ) cfg->loop_type = NULL_LOOP;
+        if(strncmp(b,"std", 3) == 0 )  cfg->input = STD_INPUT;
+        if(strncmp(b,"udp", 3) == 0 )  cfg->input = UDP_INPUT;
+        if(strncmp(b,"null", 4) == 0 ) cfg->input = NULL_INPUT;
         return 2;
     }
     if(strncmp(a,"-help", 5) == 0 )
@@ -118,7 +120,7 @@ int process_command_line( int c, char *argv[], DVB2FrameFormat *fmt, SinkConfig 
     cfg->express_symbolrate = 1000000;
     cfg->express_level = 20;
     m_udp_active = false;
-    cfg->loop_type = TS_LOOP;
+    cfg->input = STD_INPUT;
 
 	// Now read in command line
 	int index = 1;

@@ -13,7 +13,8 @@
 bool m_running;
 
 DVBS2 m_dvbs2;
-#define TSPLEN 188
+#define TSPLEN  188
+#define TP_SYNC 0x47
 //
 // Signal handler
 //
@@ -35,47 +36,6 @@ void printcon( const char *fmt, ... )
     vprintf(fmt,ap);
     va_end(ap);
 }
-
-void read_in_bytes( uint8_t *b, int len ){
-    int to_read = len;
-    int been_read = 0;
-    while(to_read > 0 ){
-        been_read += read(STDIN_FILENO,&b[been_read],to_read);
-        to_read = len - been_read;
-    }
-}
-
-void stdin_input(void){
-	uint8_t buffer[TSPLEN];
-    buffer[0] = 0;
-   	while(m_running == true){
-		read_in_bytes( buffer, TSPLEN );
-   	    if(buffer[0] == 0x47){
-			m_dvbs2.s2_add_ts_frame( buffer );
-       	}else{
-       	    // Not in sync so move on 1 byte
-            read_in_bytes( buffer, 1 );
-    	}
-  	}
-}
-
-void udp_input(void){
-    int count = 0;
-	uint8_t buffer[TSPLEN];
-    buffer[0] = 0;
-   	while(m_running == true){
-		get_udp_buffer( buffer, TSPLEN );
-   	    if(buffer[0] == 0x47){
-			m_dvbs2.s2_add_ts_frame( buffer );
-       	}else{
-       	    // Not in sync so move on 1 byte
-			get_udp_buffer( buffer, 1 );
-    	}
-  	}
-}
-//
-// Format a transport packet
-//
 static unsigned char m_null[TP_SIZE];
 
 void null_fmt( void )
@@ -96,23 +56,105 @@ void inc_seq_count(uint8_t *b){
     c = (c+1)&0x0F;
     b[3] = (b[3]&0xF0)|c;
 }
+//
+// This processes the transport stream from the UDP socket
+//
+void *udp_thread( void *arg )
+{
+    // This blocks
+    uint8_t *b;
 
-void null_loop(void){
+    while( m_running )
+    {
+        b = alloc_buff();
+        get_udp_buffer( b, TSPLEN );
+        if( b[0] != TP_SYNC ){ // Try to achieve sync
+            for( int i = 0; i < TSPLEN-1; i++ ){
+                get_udp_buffer( b, 1 );
+                if( b[0] == TP_SYNC ){
+                    get_udp_buffer( b, TSPLEN - 1 );
+                }
+            }
+        }
+        // Queue
+        post_buff( b );
+    }
+    return arg;
+}
+//
+// This processes the transport stream from STDIN
+//
+void *stdin_thread( void *arg )
+{
+    // This blocks
+    uint8_t *b;
 
-	null_fmt();
+    while( m_running )
+    {
+        b = alloc_buff();
+        int len = fread(b, 1, TSPLEN, stdin);
+        if( b[0] == TP_SYNC )
+        {
+            // Aligned to TP (probably)
+            post_buff( b );
+        }
+        else
+        {
+            // Slip bytes until TP alignment
+            printcon("STDIN Invalid sync byte %.2X %d\n",b[0],len);
+            len = fread(b, 1, 1, stdin);
+            rel_buff( b );
+        }
+    }
+    return arg;
+}
+//
+// Feed modulator with transport packets
+//
 
-	while(m_running == true){
-	inc_seq_count( m_null);
-	    m_dvbs2.s2_add_ts_frame( m_null );
+void ts_loop(void){
+	uint8_t *b;
+	while( m_running == true){
+        if((b=get_buff())!= NULL)
+	        m_dvbs2.s2_add_ts_frame( b );
+         else
+        {
+           // Underrun
+	       m_dvbs2.s2_add_ts_frame( m_null );
+        }
    	}
 }
 
-void ts_loop(void){
-	// Choose which forever loop
-    if(is_udp_active() == true)
-		udp_input();
-	else
-		stdin_input();
+static pthread_t m_thread;
+
+void std_loop(void){
+	// Start the std input loop thread
+    if(pthread_create( &m_thread, NULL, stdin_thread, NULL ) != 0 )
+    {
+        printcon("Unable to start stdin thread\n");
+        m_running = false;
+        return;
+    }
+	ts_loop();
+}
+
+void udp_loop(void){
+	// Start the udp loop thread
+    if(pthread_create( &m_thread, NULL, udp_thread, NULL ) != 0 )
+    {
+        printcon("Unable to start udp thread\n");
+        m_running = false;
+        return;
+    }
+	ts_loop();
+}
+
+void null_loop(void){
+    // Just send NULL packets 
+	while( m_running == true){
+		inc_seq_count( m_null);
+	    m_dvbs2.s2_add_ts_frame( m_null );
+   	}
 }
 
 int main( int c, char *argv[]){
@@ -125,6 +167,8 @@ int main( int c, char *argv[]){
 	sigIntHandler.sa_flags = 0;
 	sigaction(SIGINT, &sigIntHandler, NULL);
 
+	buf_init();
+
     process_command_line( c, argv, &fmt, &cfg);
 
     if( express_init( "datvexpress16.ihx", "datvexpressraw16.rbf" ) == EXP_OK){
@@ -136,10 +180,11 @@ int main( int c, char *argv[]){
     		m_dvbs2.s2_register_tx(express_write_16_bit_samples);
             express_transmit();
 			m_running = true;
-            if(cfg.loop_type == NULL_LOOP )
-				null_loop();
-			else
-				ts_loop();
+ 			null_fmt();
+
+           if(cfg.input == STD_INPUT ) std_loop();
+           if(cfg.input == UDP_INPUT ) udp_loop();
+           if(cfg.input == NULL_INPUT ) null_loop();
 		}else{
 			printcon( "Error: unable to configure S2 invalid parameter" );
 		}
