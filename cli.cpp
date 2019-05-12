@@ -5,7 +5,22 @@
 
 static bool m_udp_active;
 
-int parse(const char *a, const char *b, DVB2FrameFormat *fmt ){
+void help(void){
+	printf("-ft normal | short (frame type)\n");
+	printf("-cr 1/4 | 1/3 | 2/5 | 1/2 | 3/5 | 2/3 | 3/4 | 4/5 | 5/6 | 8/9 | 9/10  (FEC rate)\n");
+	printf("-ro 0.35 | 0.25 | 0.20  (filter roll off)\n");
+	printf("-co qpsk | 8psk | 16apsk | 32 apsk (constellation)\n");
+	printf("-pi on | off (pilots)\n");
+	printf("-udp port number (use UDP input)\n");
+	printf("-fr transmit frequency in HZ (transmit frequency)\n");
+	printf("-sr symbolrate  (symbol rate)\n");
+	printf("-po power level (power level)\n");
+	printf("-loop nulls  (send continuous NULL packets)\n");
+	printf("-help \n");
+}
+int parse(const char *a, const char *b, DVB2FrameFormat *fmt, SinkConfig *cfg ){
+
+    printf("Command %s %s\n",a, b);
 
 	if(strncmp(a,"-ft",3) == 0){
 		if(strncmp(b,"normal",6)==0) fmt->frame_type = FRAME_NORMAL;
@@ -58,28 +73,39 @@ int parse(const char *a, const char *b, DVB2FrameFormat *fmt ){
 	// 
     if(strncmp(a,"-fr", 3) == 0 )
     {
-        double frequency = atof(b);
-        express_set_freq( frequency );
+        cfg->express_frequency = atof(b);
         return 2;
     }
     if(strncmp(a,"-sr", 3) == 0 )
     {
-        double symbol_rate = atof(b);
-        express_set_sr( symbol_rate );
+        cfg->express_symbolrate = atof(b);
         return 2;
     }
     if(strncmp(a,"-po", 3) == 0 )
     {
-        int tx_level = atoi(b);
-        express_set_level( tx_level );
+         cfg->express_level = atoi(b);
+         return 2;
+    }
+    // What type of loop
+
+    if(strncmp(a,"-loop", 5) == 0 )
+    {
+        if(strncmp(b,"nulls", 5) == 0 ) cfg->loop_type = NULL_LOOP;
         return 2;
     }
+    if(strncmp(a,"-help", 5) == 0 )
+    {
+		help();
+        return 1;
+    }
+    printf("Uknown command %s\n",a);
+
 	return 1;
 }
 bool is_udp_active(void){
 	return m_udp_active;
 }
-int process_command_line( int c, char *argv[], DVB2FrameFormat *fmt){
+int process_command_line( int c, char *argv[], DVB2FrameFormat *fmt, SinkConfig *cfg){
 	// Set default S2 values
 	fmt->frame_type = FRAME_NORMAL;
 	fmt->code_rate = CR_2_3;
@@ -88,15 +114,16 @@ int process_command_line( int c, char *argv[], DVB2FrameFormat *fmt){
 	fmt->pilots = PILOTS_OFF;
 	fmt->null_deletion = NPD_NOT_ACTIVE;
 	fmt->coincedent_constellation = false;
-    express_set_freq( 1255000000 );
-    express_set_sr( 1000000 );
-    express_set_level( 20 );
+    cfg->express_frequency   = 1255000000;
+    cfg->express_symbolrate = 1000000;
+    cfg->express_level = 20;
     m_udp_active = false;
+    cfg->loop_type = TS_LOOP;
 
 	// Now read in command line
 	int index = 1;
 	while( index < c){
-		index += parse(argv[index], argv[index+1], fmt );
+		index += parse(argv[index], argv[index+1], fmt, cfg );
     }
 	return 0;
 }

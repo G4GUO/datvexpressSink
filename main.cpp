@@ -73,43 +73,11 @@ void udp_input(void){
     	}
   	}
 }
-
-int main( int c, char *argv[]){
-	struct sigaction sigIntHandler;
-
-	sigIntHandler.sa_handler = my_handler;
-	sigemptyset(&sigIntHandler.sa_mask);
-	sigIntHandler.sa_flags = 0;
-	sigaction(SIGINT, &sigIntHandler, NULL);
-
-    if( express_init( "datvexpress16.ihx", "datvexpressraw16.rbf" ) == EXP_OK){
- 		
-		DVB2FrameFormat fmt;
-        process_command_line( c, argv, &fmt);
-   		if(m_dvbs2.s2_set_configure( &fmt ) == 0){
-    		m_dvbs2.s2_register_tx(express_write_16_bit_samples);
-            express_transmit();
-			m_running = true;
-			// Choose which forever loop
-            if(is_udp_active() == true)
-				udp_input();
-			else
-				stdin_input();
-		}else{
-			printcon( "Error: unable to configure S2 invalid parameter" );
-		}
-	}else{
-		printcon( "Error: unable to init Express" );
-	}
-	return 0;
-}
-
-/*
-static unsigned char m_null[TP_SIZE];
-
 //
 // Format a transport packet
 //
+static unsigned char m_null[TP_SIZE];
+
 void null_fmt( void )
 {
     m_null[0] = 0x47;
@@ -120,30 +88,58 @@ void null_fmt( void )
 	m_null[3] = 0x10;
     for( int i = 4; i < TP_SIZE; i++ ) m_null[i] = 0xFF;
 }
+//
+// increment the counter in a transport packet
+//
+void inc_seq_count(uint8_t *b){
+	uint8_t c = b[3]&0x0F;
+    c = (c+1)&0x0F;
+    b[3] = (b[3]&0xF0)|c;
+}
+
+void null_loop(void){
+
+	null_fmt();
+
+	while(m_running == true){
+	inc_seq_count( m_null);
+	    m_dvbs2.s2_add_ts_frame( m_null );
+   	}
+}
+
+void ts_loop(void){
+	// Choose which forever loop
+    if(is_udp_active() == true)
+		udp_input();
+	else
+		stdin_input();
+}
 
 int main( int c, char *argv[]){
-	uint8_t buffer[TSPLEN];
-    buffer[0] = 0;
 	struct sigaction sigIntHandler;
+    SinkConfig cfg;
+	DVB2FrameFormat fmt;
 
 	sigIntHandler.sa_handler = my_handler;
 	sigemptyset(&sigIntHandler.sa_mask);
 	sigIntHandler.sa_flags = 0;
 	sigaction(SIGINT, &sigIntHandler, NULL);
 
-	null_fmt();
+    process_command_line( c, argv, &fmt, &cfg);
 
     if( express_init( "datvexpress16.ihx", "datvexpressraw16.rbf" ) == EXP_OK){
+        express_set_freq( cfg.express_frequency );
+        express_set_sr( cfg.express_symbolrate );
+        express_set_level( cfg.express_level );
  		
-		DVB2FrameFormat fmt;
-        process_command_line( c, argv, &fmt);
    		if(m_dvbs2.s2_set_configure( &fmt ) == 0){
     		m_dvbs2.s2_register_tx(express_write_16_bit_samples);
             express_transmit();
-            m_running = true;
-	    	while(m_running == true){
-			    m_dvbs2.s2_add_ts_frame( m_null );
-	    	}
+			m_running = true;
+            if(cfg.loop_type == NULL_LOOP )
+				null_loop();
+			else
+				ts_loop();
 		}else{
 			printcon( "Error: unable to configure S2 invalid parameter" );
 		}
@@ -152,4 +148,4 @@ int main( int c, char *argv[]){
 	}
 	return 0;
 }
-*/
+
