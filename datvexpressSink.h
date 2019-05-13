@@ -1,11 +1,12 @@
 #include "DVBS2.h"
 #include "Express.h"
 
-#define TS_LOOP   0
-#define NULL_LOOP 1
+#define UDP_INPUT  0
+#define STD_INPUT  1
+#define NULL_INPUT 2
 
 typedef struct{
-	int loop_type;
+	int input;
     double express_frequency;
     int express_level;
     double express_symbolrate;
