@@ -20,8 +20,6 @@ void help(void){
 }
 int parse(const char *a, const char *b, DVB2FrameFormat *fmt, SinkConfig *cfg ){
 
-    printf("Command %s %s\n",a, b);
-
 	if(strncmp(a,"-ft",3) == 0){
 		if(strncmp(b,"normal",6)==0) fmt->frame_type = FRAME_NORMAL;
     	if(strncmp(b,"short",5)==0)  fmt->frame_type = FRAME_SHORT;
@@ -98,7 +96,7 @@ int parse(const char *a, const char *b, DVB2FrameFormat *fmt, SinkConfig *cfg ){
     if(strncmp(a,"-help", 5) == 0 )
     {
 		help();
-        return 1;
+        exit(0);
     }
     printf("Uknown command %s\n",a);
 

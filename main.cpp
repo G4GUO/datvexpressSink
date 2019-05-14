@@ -178,6 +178,7 @@ int main( int c, char *argv[]){
  		
    		if(m_dvbs2.s2_set_configure( &fmt ) == 0){
     		m_dvbs2.s2_register_tx(express_write_16_bit_samples);
+            printcon("Channel bitrate %d\n",(int)(m_dvbs2.s2_get_efficiency()*cfg.express_symbolrate));
             express_transmit();
 			m_running = true;
  			null_fmt();

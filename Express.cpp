@@ -169,6 +169,12 @@ int express_i2c_bulk_transfer(int ep, unsigned char *b, int l )
     }
     return res;
 }
+int express_i2c_bulk_transfer_blocking(int ep, unsigned char *b, int l )
+{
+	int sbytes;
+    return libusb_bulk_transfer(m_handle,ep,b,3,&sbytes,USB_TIMEOUT);
+
+}
 ///////////////////////////////////////////////////////////////////////////////////////
 //
 // Only called at start up
@@ -364,123 +370,118 @@ void express_configure_adrf6755( void )
 
      // power down the modulator
      b[1]=29;b[2]=0x80;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      // power up internal VCO, 1.3 GHz
      b[1]=28;b[2]=0x08;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
      //
      b[1]=27;b[2]=0x10;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      // reserved registers
      b[1]=26;b[2]=0x00;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      b[1]=25;b[2]=0x64;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      // enable autocalibration
      b[1]=24;b[2]=0x18;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      // lock detect
      b[1]=23;b[2]=0x70;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      // reserved registers
      b[1]=22;b[2]=0x80;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
-     express_handle_events( 8 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
      b[1]=21;b[2]=0x00;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
      b[1]=20;b[2]=0x00;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
      b[1]=19;b[2]=0x80;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
      b[1]=18;b[2]=0x60;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
      b[1]=17;b[2]=0x00;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
      b[1]=16;b[2]=0x00;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
      b[1]=15;b[2]=0x00;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      // enable attenuator
      b[1] = 14;b[2]=0x80;//1b
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
-     express_handle_events( 8 );
-
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
+ 
      //
      b[1]=13;b[2]=0xE8;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      // power up pll
      b[1]=12;b[2]=0x18;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      // reserved
      b[1]=11;b[2]=0x00;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      //
      b[1] = 10;b[2]=0x21;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      // charge pump
      // CR9
      b[1]=9;b[2]=0xF0;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      // reserved
      b[1]=8;b[2]=0x00;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      // Set frequency to 1300 MHz ?
      // CR7
      b[1]=7;b[2]=0x00;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      // CR6 ?
      b[1]=6;b[2]=0x20;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
-     express_handle_events( 8 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      // CR5 Disable R divider
      b[1]=5;b[2]=0x00;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      // CR4 reserved
      b[1]=4;b[2]=0x01;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      // CR3
      b[1]=3;b[2]=0x05;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      // CR2
      b[1]=2;b[2]=0x00;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      // CR1
      b[1]=1;b[2]=0x00;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      // CR0
      b[1]=0;b[2]=0x00;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
          // power lo monitor
      b[1]=27;b[2]=0x10;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 
      // wait for PLL lock
      // power up the modulator
      b[1]=29;b[2]=0x81;
-     express_i2c_bulk_transfer( EP1OUT, b, 3 );
-
-     express_handle_events( 8 );
+     express_i2c_bulk_transfer_blocking( EP1OUT, b, 3 );
 }
 void express_read_adrf6755_version(void)
 {
@@ -1256,11 +1257,11 @@ void express_release_transfer_buffers(void)
 //
 int express_send_buffer( void *b, int l )
 {
+    int res = express_bulk_transfer(EP2OUT,(unsigned char *)b, l);
     while( m_xfrs_in_progress > (N_USB_TX_BUFFS/4))
     {
         libusb_handle_events(m_usbctx);
     }
-    int res = express_bulk_transfer(EP2OUT,(unsigned char *)b, l);
     return res;
 }
 // Used for testing to insert a single byte into the USB sample stream
